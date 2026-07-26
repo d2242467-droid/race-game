@@ -387,6 +387,7 @@ const I18N = {
     car_nascar_name:'NASCAR Stock Car', car_nascar_desc:'Stocky aero body built for one thing: raw top speed on the straights.',
     car_offroad_name:'Monster SUV', car_offroad_desc:'Elevated 4x4 with a bull-bar front end. Shrugs off gravel penalties entirely.',
     car_thrustssc_name:'ThrustSSC Jet Car', car_thrustssc_desc:'Twin-turbine land-speed-record needle. Obscene straight-line speed, twitchy handling.',
+    car_thunderflash_name:'Thunder Flash', car_thunderflash_desc:'"Full speed ahead!" Ultimate acceleration and legendary drift.',
 
     colorNeonRed:'Neon Red', colorCyberBlue:'Cyber Blue', colorElectricGreen:'Electric Green',
     colorStealthBlack:'Stealth Black', colorSunburstGold:'Sunburst Gold', colorDeepPurple:'Deep Purple',
@@ -433,6 +434,7 @@ const I18N = {
     car_nascar_name:'Стоковий NASCAR', car_nascar_desc:'Приземкуватий аеродинамічний кузов заради однієї мети: максимальної швидкості на прямих.',
     car_offroad_name:'Монстр-трак', car_offroad_desc:'Піднята підвіска та силовий бампер. Повністю ігнорує штраф швидкості на гравії.',
     car_thrustssc_name:'Реактивний ThrustSSC', car_thrustssc_desc:'Голкоподібний рекордсмен на двох турбінах. Шалена швидкість по прямій, нервове керування.',
+    car_thunderflash_name:'Блискавний Гонщик', car_thunderflash_desc:'"Повний вперед!" Максимальне прискорення та легендарний дрифт.',
 
     colorNeonRed:'Неоново-червоний', colorCyberBlue:'Кібер-синій', colorElectricGreen:'Електрично-зелений',
     colorStealthBlack:'Стелс-чорний', colorSunburstGold:'Сонячно-золотий', colorDeepPurple:'Глибокий фіолетовий',
@@ -863,6 +865,31 @@ function playCheckpointChime(){
   if(!audioCtx) return;
   playTone(784, 0.18, 'triangle', 0.25, 0);
   playTone(988, 0.22, 'triangle', 0.22, 0.07);
+}
+function playCatchphraseSound(){
+  // Stylized synthesized "Zoom-Zoom! / Power Up!" stinger for Thunder Flash's nitro activation
+  if(!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  const osc1 = audioCtx.createOscillator(); osc1.type = 'sawtooth';
+  osc1.frequency.setValueAtTime(220, t0);
+  osc1.frequency.exponentialRampToValueAtTime(880, t0+0.18);
+  const g1 = audioCtx.createGain();
+  g1.gain.setValueAtTime(0.0001, t0);
+  g1.gain.linearRampToValueAtTime(0.3, t0+0.02);
+  g1.gain.exponentialRampToValueAtTime(0.001, t0+0.2);
+  osc1.connect(g1); g1.connect(masterGain); osc1.start(t0); osc1.stop(t0+0.22);
+
+  const t1 = t0+0.16;
+  const osc2 = audioCtx.createOscillator(); osc2.type = 'sawtooth';
+  osc2.frequency.setValueAtTime(260, t1);
+  osc2.frequency.exponentialRampToValueAtTime(1100, t1+0.16);
+  const g2 = audioCtx.createGain();
+  g2.gain.setValueAtTime(0.0001, t1);
+  g2.gain.linearRampToValueAtTime(0.32, t1+0.02);
+  g2.gain.exponentialRampToValueAtTime(0.001, t1+0.2);
+  osc2.connect(g2); g2.connect(masterGain); osc2.start(t1); osc2.stop(t1+0.22);
+
+  playTone(1046.5, 0.3, 'triangle', 0.25, 0.32);
 }
 
 function applyMuteState(){
@@ -1400,6 +1427,157 @@ function buildThrustSSCMesh(bodyColor, scale=1){
   return group;
 }
 
+/* --- decal/face textures shared by the Thunder Flash legendary vehicle --- */
+function makeLightningDecalTexture(number){
+  const canvas = document.createElement('canvas');
+  canvas.width = 220; canvas.height = 130;
+  const ctx = canvas.getContext('2d');
+  // yellow lightning-bolt flame shape with a dark cartoon outline
+  ctx.fillStyle = '#ffe14d';
+  ctx.strokeStyle = '#241800';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(65,6); ctx.lineTo(32,60); ctx.lineTo(58,60);
+  ctx.lineTo(26,124); ctx.lineTo(90,64); ctx.lineTo(62,64); ctx.lineTo(94,6);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // racing number circle
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(160,65,48,0,Math.PI*2); ctx.fill();
+  ctx.lineWidth = 5; ctx.strokeStyle = '#1a1a1a'; ctx.stroke();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.font = 'bold 56px Arial, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(number), 160, 70);
+  return new THREE.CanvasTexture(canvas);
+}
+function makeFriendlyEyesTexture(){
+  const canvas = document.createElement('canvas');
+  canvas.width = 140; canvas.height = 70;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#eaf7ff';
+  ctx.beginPath(); ctx.ellipse(42,34,16,20,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(98,34,16,20,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#12222c';
+  ctx.beginPath(); ctx.arc(46,36,6.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(102,36,6.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(48,32,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(104,32,2,0,Math.PI*2); ctx.fill();
+  return new THREE.CanvasTexture(canvas);
+}
+function makeGrilleSmileTexture(){
+  const canvas = document.createElement('canvas');
+  canvas.width = 140; canvas.height = 50;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#1a0505'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(70,-14,58,0.28,Math.PI-0.28); ctx.stroke();
+  return new THREE.CanvasTexture(canvas);
+}
+
+/* --- Thunder Flash: legendary crimson speedster, "Full speed ahead!" --- */
+function buildThunderFlashMesh(bodyColor, scale=1){
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color:bodyColor, emissive:bodyColor, emissiveIntensity:0.22, roughness:0.3, metalness:0.6 });
+  const darkMat = new THREE.MeshStandardMaterial({ color:0x14121a, roughness:0.6, metalness:0.4 });
+  const glassMat = new THREE.MeshStandardMaterial({ color:0x0d0d1a, emissive:0x3355ff, emissiveIntensity:0.35, roughness:0.15, metalness:0.85, transparent:true, opacity:0.82 });
+  const metalMat = new THREE.MeshStandardMaterial({ color:0x8a93a3, roughness:0.3, metalness:0.9 });
+  const tireMat = new THREE.MeshStandardMaterial({ color:0x0a0a0a, roughness:0.95 });
+  const rimMat = new THREE.MeshStandardMaterial({ color:0xdd1111, emissive:0xff2222, emissiveIntensity:0.4, roughness:0.25, metalness:0.9 });
+  const headlightMat = new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xfff3b0, emissiveIntensity:2.4 });
+  const taillightMat = new THREE.MeshStandardMaterial({ color:0x330000, emissive:0xff1133, emissiveIntensity:2.2 });
+  const exhaustMat = new THREE.MeshStandardMaterial({ color:0x333333, emissive:0xff5522, emissiveIntensity:0.5, metalness:0.7, roughness:0.4 });
+
+  function addPart(geo, mat, x,y,z, rx=0,ry=0,rz=0){
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x,y,z); m.rotation.set(rx,ry,rz);
+    m.castShadow = true; m.receiveShadow = true;
+    group.add(m); return m;
+  }
+
+  // sleek aerodynamic NASCAR-style coupe body
+  addPart(new THREE.BoxGeometry(3.8,0.85,6.8), bodyMat, 0,0.6,0);
+  addPart(new THREE.BoxGeometry(3.2,0.5,2.1), bodyMat, 0,1.05,1.95);
+  addPart(new THREE.BoxGeometry(2.6,0.85,2.7), bodyMat, 0,1.55,-0.3);
+  addPart(new THREE.BoxGeometry(3.0,0.5,1.5), bodyMat, 0,1.05,-2.35);
+
+  // friendly rounded windshield with cartoon "eyes"
+  const windshield = addPart(new THREE.BoxGeometry(2.4,0.9,0.14), glassMat, 0,1.55,0.95,-0.3,0,0);
+  const eyesTex = makeFriendlyEyesTexture();
+  const eyesMat = new THREE.MeshBasicMaterial({ map:eyesTex, transparent:true });
+  const eyesPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.1,1.05), eyesMat);
+  eyesPlane.position.set(0,1.6,1.02); eyesPlane.rotation.x = -0.3;
+  group.add(eyesPlane);
+  addPart(new THREE.BoxGeometry(2.4,0.8,0.14), glassMat, 0,1.5,-1.55,0.25,0,0);
+  addPart(new THREE.BoxGeometry(0.1,0.7,2.1), glassMat, -1.36,1.55,-0.3);
+  addPart(new THREE.BoxGeometry(0.1,0.7,2.1), glassMat, 1.36,1.55,-0.3);
+
+  // front bumper with a grinning grille smile
+  addPart(new THREE.BoxGeometry(4.0,0.5,0.5), darkMat, 0,0.5,3.35);
+  const smileTex = makeGrilleSmileTexture();
+  const smileMat = new THREE.MeshBasicMaterial({ map:smileTex, transparent:true });
+  const smilePlane = new THREE.Mesh(new THREE.PlaneGeometry(2.4,0.9), smileMat);
+  smilePlane.position.set(0,0.42,3.62);
+  group.add(smilePlane);
+  addPart(new THREE.BoxGeometry(4.0,0.5,0.5), darkMat, 0,0.5,-3.35);
+
+  // side skirts
+  addPart(new THREE.BoxGeometry(0.3,0.35,5.8), darkMat, -1.95,0.3,0);
+  addPart(new THREE.BoxGeometry(0.3,0.35,5.8), darkMat, 1.95,0.3,0);
+
+  // rear racing spoiler
+  addPart(new THREE.CylinderGeometry(0.08,0.08,1.0,6), darkMat, -1.5,1.95,-3.1);
+  addPart(new THREE.CylinderGeometry(0.08,0.08,1.0,6), darkMat, 1.5,1.95,-3.1);
+  addPart(new THREE.BoxGeometry(3.8,0.14,0.85), bodyMat, 0,2.4,-3.15);
+
+  // headlights / taillights
+  [-1.4,1.4].forEach(sx=>{
+    addPart(new THREE.SphereGeometry(0.28,10,8), metalMat, sx,0.95,3.5);
+    addPart(new THREE.SphereGeometry(0.2,10,8), headlightMat, sx,0.95,3.65);
+    addPart(new THREE.BoxGeometry(0.45,0.28,0.14), taillightMat, sx,1.0,-3.55);
+  });
+
+  // lightning-bolt + racing-number decals on both sides
+  const decalTex = makeLightningDecalTexture(77);
+  const decalMat = new THREE.MeshBasicMaterial({ map:decalTex, transparent:true });
+  const decalL = new THREE.Mesh(new THREE.PlaneGeometry(3.0,1.8), decalMat);
+  decalL.position.set(-1.93,1.0,0); decalL.rotation.y = -Math.PI/2; group.add(decalL);
+  const decalR = new THREE.Mesh(new THREE.PlaneGeometry(3.0,1.8), decalMat);
+  decalR.position.set(1.93,1.0,0); decalR.rotation.y = Math.PI/2; group.add(decalR);
+
+  // wheel wells
+  [[-2.0,0.85,2.15],[2.0,0.85,2.15],[-2.0,0.85,-2.15],[2.0,0.85,-2.15]].forEach(p=>
+    addPart(new THREE.BoxGeometry(0.5,0.85,1.8), darkMat, p[0],p[1],p[2]));
+
+  // wide tires with red rims
+  const wheels = [];
+  [[-2.0,0.55,2.15],[2.0,0.55,2.15],[-2.0,0.55,-2.15],[2.0,0.55,-2.15]].forEach(p=>{
+    const wg = new THREE.Group();
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.98,0.98,0.9,14), tireMat);
+    tire.rotation.z = Math.PI/2; tire.castShadow=true; tire.receiveShadow=true;
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.52,0.52,0.95,10), rimMat);
+    rim.rotation.z = Math.PI/2; rim.castShadow=true; rim.receiveShadow=true;
+    wg.add(tire,rim); wg.position.set(p[0],p[1],p[2]); group.add(wg); wheels.push(wg);
+  });
+
+  const exhaustPoints = [];
+  [-1.65,1.65].forEach(sx=>{
+    addPart(new THREE.CylinderGeometry(0.16,0.16,0.6,8), exhaustMat, sx,0.45,-3.5, Math.PI/2,0,0);
+    exhaustPoints.push(new THREE.Vector3(sx,0.45,-3.55));
+  });
+
+  const shieldMat = new THREE.MeshStandardMaterial({ color:0x66ffee, emissive:0x66ffee, emissiveIntensity:1, transparent:true, opacity:0, side:THREE.DoubleSide });
+  const shield = new THREE.Mesh(new THREE.SphereGeometry(5.7,14,12), shieldMat);
+  group.add(shield);
+
+  group.userData.wheels = wheels;
+  group.userData.shieldMesh = shield;
+  group.userData.exhaustPoints = exhaustPoints;
+  group.userData.bodyMaterial = bodyMat;
+  group.scale.set(scale,scale,scale);
+  return group;
+}
+
 /* --- Vehicle catalogue: stats, unlock cost, default paint, and mesh builder --- */
 const CAR_DEFS = {
   standard: {
@@ -1433,6 +1611,15 @@ const CAR_DEFS = {
     defaultColor:'#ffd23d',
     enginePowerMult:1.55, tractionMult:0.8, maxHpMult:0.8, offroadImmune:false, nitroAccelMult:1.6,
     visualScale:1.05, build:buildThrustSSCMesh
+  },
+  thunderflash: {
+    id:'thunderflash', nameKey:'car_thunderflash_name', cost:1500,
+    stats:{ speed:135, handling:120, durability:100 },
+    descKey:'car_thunderflash_desc',
+    defaultColor:'#ff1a1a',
+    enginePowerMult:1.35, tractionMult:1.2, maxHpMult:1.0, offroadImmune:false,
+    nitroAccelMult:1.5, maxNitroMult:1.4, hasCatchphrase:true,
+    visualScale:1, build:buildThunderFlashMesh
   }
 };
 
@@ -1450,7 +1637,7 @@ function createVehicle(opts){
     isPlayer: !!opts.isPlayer, isBoss: !!opts.isBoss, scale: visualScale,
     carType: opts.carType || 'standard',
     hp: maxHpBase, maxHp: maxHpBase,
-    nitro:100, maxNitro:100,
+    nitro:100*(carDef.maxNitroMult||1), maxNitro:100*(carDef.maxNitroMult||1),
     wpIndex: opts.wpIndex||0, lap:0, cpPassed:[false,false],
     oilTimer:0, shieldTimer:0, boostCooldown:0, finishCooldown:0, aggroTimer:0,
     respawnTimer:0, dead:false, exhaustTimer:0,
@@ -1461,6 +1648,8 @@ function createVehicle(opts){
     traction: 1*(carDef.tractionMult||1),
     offroadImmune: !!carDef.offroadImmune,
     nitroAccelMult: carDef.nitroAccelMult||1,
+    hasCatchphrase: !!carDef.hasCatchphrase,
+    nitroCatchphraseActive: false,
     hullLevel:0,
     color: color,
     score:0
@@ -1498,6 +1687,17 @@ function updateParticles(dt){
 function spawnSparkParticles(x,z){ spawnParticleBurst(x,1.5,z,0xffcc55,6,6,0.4); }
 function spawnSmokeParticles(v){ spawnParticleBurst(v.x - Math.sin(v.angle)*3, 0.8, v.z - Math.cos(v.angle)*3, 0x888888,2,2,0.6); }
 function spawnBoostParticles(v){ spawnParticleBurst(v.x,1,v.z,0x00e5ff,10,8,0.5); }
+function spawnLightningTrail(v){
+  const wheels = v.mesh.userData.wheels;
+  if(!wheels || wheels.length<4) return;
+  [wheels[2], wheels[3]].forEach(w=>{ // rear wheels
+    const world = w.position.clone().multiplyScalar(v.scale);
+    world.applyAxisAngle(new THREE.Vector3(0,1,0), v.angle);
+    world.add(new THREE.Vector3(v.x, v.y, v.z));
+    const color = Math.random()<0.5 ? 0xffdd33 : 0xff3322;
+    spawnParticleBurst(world.x, world.y, world.z, color, 2, 8, 0.4);
+  });
+}
 function spawnExplosionParticles(x,z){ spawnParticleBurst(x,1.5,z,0xff5522,14,10,0.6); }
 function spawnFlameParticles(v){
   const fx = v.x + Math.sin(v.angle)*4, fz = v.z + Math.cos(v.angle)*4;
@@ -1851,6 +2051,15 @@ function updatePhysics(v, dt, input){
     const nMult = v.nitroAccelMult||1;
     accelRate *= 2.1*nMult; maxSpeed *= 1.45*(1+0.2*(nMult-1));
     v.nitro = Math.max(0, v.nitro-40*dt);
+    if(v.hasCatchphrase){
+      spawnLightningTrail(v);
+      if(!v.nitroCatchphraseActive){
+        v.nitroCatchphraseActive = true;
+        if(v.isPlayer) playCatchphraseSound();
+      }
+    }
+  } else {
+    v.nitroCatchphraseActive = false;
   }
   if(input.drift){
     effectiveTurn *= 1.7; maxSpeed *= 0.85;
@@ -2303,7 +2512,7 @@ function defaultGarageState(){
     credits: 0,
     unlockedCars: ['standard'],
     equippedCar: 'standard',
-    carColors: { standard:'#ff2d6d', nascar:'#2dfaff', offroad:'#9dff2d', thrustssc:'#ffd23d' },
+    carColors: { standard:'#ff2d6d', nascar:'#2dfaff', offroad:'#9dff2d', thrustssc:'#ffd23d', thunderflash:'#ff1a1a' },
     bestLapTimeMs: null
   };
 }
