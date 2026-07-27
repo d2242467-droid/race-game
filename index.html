@@ -908,6 +908,7 @@ document.querySelectorAll('.sound-toggle-btn').forEach(btn=> btn.addEventListene
 let scene, camera, renderer, clock;
 let torchLight, ambientLight;
 const container = document.getElementById('canvas-container');
+container.addEventListener('pointerdown', ()=>{ window.focus(); });
 
 function initThree(){
   scene = new THREE.Scene();
@@ -2733,6 +2734,13 @@ document.getElementById('start-btn').addEventListener('click', startGame);
 function startGame(){
   document.getElementById('start-overlay').classList.add('hidden');
   document.getElementById('hud-root').classList.remove('hidden');
+  // ensure the page actually has keyboard focus so WASD/E/H/etc. are received
+  // (guards against embedding contexts where the iframe/tab hasn't been focused yet)
+  window.focus();
+  if(document.body && typeof document.body.focus === 'function'){
+    document.body.setAttribute('tabindex','-1');
+    document.body.focus();
+  }
 
   aiVehicles.forEach(v=> scene.remove(v.mesh));
   aiVehicles = [];
